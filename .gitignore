@@ -1,0 +1,8 @@
+baks
+baks.exe
+baks.exe~
+*.sql
+*.db
+*.log
+
+vendor/
