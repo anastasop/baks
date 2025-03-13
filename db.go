@@ -51,10 +51,6 @@ var searchSQL = `WITH results AS (
 
 var searchSQLCount = `SELECT count(*) FROM pages_fts WHERE pages_fts MATCH ?`
 
-var likeSQL = `SELECT ` + columnNamesComma + ` FROM pages WHERE title LIKE ? ORDER BY added_at DESC`
-
-var likeSQLCount = `SELECT count(*) FROM pages WHERE title LIKE ?`
-
 var (
 	dbFile string
 	db     *sql.DB
@@ -87,15 +83,6 @@ func search(q string) ([]*page, error) {
 
 func searchCount(q string) (count int, err error) {
 	err = db.QueryRow(searchSQLCount, q).Scan(&count)
-	return
-}
-
-func like(q string) ([]*page, error) {
-	return rowsToPagesWithQuery(db.Query(likeSQL, q))
-}
-
-func likeCount(q string) (count int, err error) {
-	err = db.QueryRow(likeSQLCount, q).Scan(&count)
 	return
 }
 

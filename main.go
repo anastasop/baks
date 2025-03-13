@@ -161,43 +161,6 @@ It can include near and prefix queries as described in the sqlite3 docs.`,
 		},
 	}
 
-	likeFs := flag.NewFlagSet("likeFlags", flag.ExitOnError)
-	likeCountOnly := likeFs.Bool("c", false, "display only the result count")
-	likeCmd := &ffcli.Command{
-		Name:       "like",
-		ShortUsage: "like <query>",
-		ShortHelp:  "Search urls with an sql like on titles",
-		LongHelp:   "Search urls with an sql like on titles.",
-		FlagSet:    likeFs,
-		Exec: func(ctx context.Context, args []string) error {
-			if len(args) == 0 {
-				return flag.ErrHelp
-			}
-
-			openDatabase(*rootDB)
-			defer closeDatabase()
-
-			if *likeCountOnly {
-				if count, err := likeCount(args[0]); err == nil {
-					fmt.Println("Results:", count)
-				} else {
-					return err
-				}
-			} else {
-				if pages, err := like(args[0]); err == nil {
-					for _, pg := range pages {
-						printPage(pg)
-						fmt.Println()
-					}
-				} else {
-					return err
-				}
-			}
-
-			return nil
-		},
-	}
-
 	extractFs := flag.NewFlagSet("extractFlags", flag.ExitOnError)
 	extractPrintText := extractFs.Bool("t", false, "print anchor text")
 	extractResolveURLs := extractFs.Bool("a", false, "print absolute urls")
@@ -238,7 +201,7 @@ and printed one per line.`,
 		},
 	}
 
-	rootCmd.Subcommands = []*ffcli.Command{visitCmd, addCmd, searchCmd, likeCmd, extractCmd}
+	rootCmd.Subcommands = []*ffcli.Command{visitCmd, addCmd, searchCmd, extractCmd}
 
 	if err := rootCmd.Parse(os.Args[1:]); err != nil && err != flag.ErrHelp {
 		log.Fatal(err)
