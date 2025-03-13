@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"text/tabwriter"
-	"time"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 )
@@ -44,8 +43,7 @@ It stores bookmarks on an sqlite3 database and supports full text search on
 title and description. Each bookmark also has two labels: the tag which is the
 user defined class of the bookmark (ex news, culture) and the referrer which
 is information on how the url was found (ex twitter, google groups). These are
-set by the user when adding a url.
-Baks also has experimental support for atom feeds.`,
+set by the user when adding a url.`,
 		FlagSet: rootFs,
 		Exec: func(ctx context.Context, args []string) error {
 			if *rootPath {
@@ -308,33 +306,7 @@ and printed one per line.`,
 		},
 	}
 
-	feedFs := flag.NewFlagSet("feedFlags", flag.ExitOnError)
-	feedSince := feedFs.String("s", "", "a date, formatted like 2020-01-01. Return entries newer than this.")
-	feedCmd := &ffcli.Command{
-		Name:       "feed",
-		ShortUsage: "feed <feed url>...",
-		ShortHelp:  "Read the most recent entries of the feeds",
-		LongHelp:   "Read the most recent entries of the feeds.",
-		FlagSet:    feedFs,
-		Exec: func(ctx context.Context, args []string) error {
-			if *feedSince == "" || len(args) == 0 {
-				return flag.ErrHelp
-			}
-
-			since, err := time.Parse("2006-01-02", *feedSince)
-			if err != nil {
-				return flag.ErrHelp
-			}
-
-			for _, feed := range args {
-				readFeed(feed, since)
-			}
-
-			return nil
-		},
-	}
-
-	rootCmd.Subcommands = []*ffcli.Command{visitCmd, addCmd, searchCmd, listCmd, likeCmd, extractCmd, feedCmd}
+	rootCmd.Subcommands = []*ffcli.Command{visitCmd, addCmd, searchCmd, listCmd, likeCmd, extractCmd}
 
 	if err := rootCmd.Parse(os.Args[1:]); err != nil && err != flag.ErrHelp {
 		log.Fatal(err)
