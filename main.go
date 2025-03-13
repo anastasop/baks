@@ -48,34 +48,6 @@ func main() {
 		},
 	}
 
-	visitFs := flag.NewFlagSet("visitFlags", flag.ExitOnError)
-	visitIgnoreErrors := visitFs.Bool("i", false, "ignore http errors")
-	visitSkipContent := visitFs.Bool("n", false, "don't read content")
-	visitCmd := &ffcli.Command{
-		Name:       "visit",
-		ShortUsage: "visit [flags] <url>...",
-		ShortHelp:  "Visit the urls and for each one print the title and description",
-		LongHelp:   "Visit the urls and for each one print the title and description.",
-		FlagSet:    visitFs,
-		Exec: func(ctx context.Context, args []string) error {
-			if len(args) == 0 {
-				return flag.ErrHelp
-			}
-
-			for _, u := range args {
-				pg, err := visit(u, *visitIgnoreErrors, *visitSkipContent)
-				if err == nil {
-					printPage(pg)
-					fmt.Println()
-				} else {
-					log.Printf("%v\n\n", err)
-				}
-			}
-
-			return nil
-		},
-	}
-
 	addFs := flag.NewFlagSet("addFlags", flag.ExitOnError)
 	addIgnoreErrors := addFs.Bool("i", false, "ignore http errors")
 	addSkipContent := addFs.Bool("n", false, "don't read content")
@@ -161,7 +133,7 @@ It can include near and prefix queries as described in the sqlite3 docs.`,
 		},
 	}
 
-	rootCmd.Subcommands = []*ffcli.Command{visitCmd, addCmd, searchCmd}
+	rootCmd.Subcommands = []*ffcli.Command{addCmd, searchCmd}
 
 	if err := rootCmd.Parse(os.Args[1:]); err != nil && err != flag.ErrHelp {
 		log.Fatal(err)
