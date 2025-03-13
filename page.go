@@ -10,8 +10,6 @@ type page struct {
 	Description string
 	MimeType    string
 	AtomURL     string
-	Tag         string
-	Referrer    string
 	Host        string
 	IsRootPage  bool
 	AddedAt     time.Time

@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/tabwriter"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 )
@@ -38,13 +37,8 @@ func main() {
 		Name:       "baks",
 		ShortUsage: "baks [flags] subcommand [flags] <arguments>...",
 		ShortHelp:  "Baks is a swiss army knife for bookmarks",
-		LongHelp: `Baks is a swiss army knife for bookmarks.
-It stores bookmarks on an sqlite3 database and supports full text search on
-title and description. Each bookmark also has two labels: the tag which is the
-user defined class of the bookmark (ex news, culture) and the referrer which
-is information on how the url was found (ex twitter, google groups). These are
-set by the user when adding a url.`,
-		FlagSet: rootFs,
+		LongHelp:   `Baks is a swiss army knife for bookmarks. It stores bookmarks on an sqlite3 database and supports full text search on title and description.`,
+		FlagSet:    rootFs,
 		Exec: func(ctx context.Context, args []string) error {
 			if *rootPath {
 				fmt.Println(*rootDB)
@@ -83,8 +77,6 @@ set by the user when adding a url.`,
 	}
 
 	addFs := flag.NewFlagSet("addFlags", flag.ExitOnError)
-	addTag := addFs.String("t", "", "tag")
-	addReferrer := addFs.String("r", "", "referrer")
 	addIgnoreErrors := addFs.Bool("i", false, "ignore http errors")
 	addSkipContent := addFs.Bool("n", false, "don't read content")
 	addCmd := &ffcli.Command{
@@ -96,9 +88,7 @@ If the argument is a url, it it added to the database.
 If the argument is a file it is expected to be a text or html file.
 For html, usually an export of bookmarks by a browser, the <a href=...>
 tags are extracted and the urls are added to the database.
-For text each line is assumed to be a valid url. The db contains a table
-pages_tags which has predefined rules to set tags by the urls host. These
-can be configured manually with the sqlite3 cli app.`,
+For text each line is assumed to be a valid url.`,
 		FlagSet: addFs,
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
@@ -110,78 +100,20 @@ can be configured manually with the sqlite3 cli app.`,
 
 			for _, arg := range args {
 				if strings.HasPrefix(arg, "http") {
-					if err := addURL(arg, *addTag, *addReferrer, *addIgnoreErrors, *addSkipContent); err != nil {
+					if err := addURL(arg, *addIgnoreErrors, *addSkipContent); err != nil {
 						log.Println(err)
 					}
 				} else {
 					anchors, err := anchorsFromFile(arg)
 					if err == nil {
 						for _, u := range anchors {
-							if err := addURL(u.url, *addTag, *addReferrer, *addIgnoreErrors, *addSkipContent); err != nil {
+							if err := addURL(u.url, *addIgnoreErrors, *addSkipContent); err != nil {
 								log.Println(err)
 							}
 						}
 					} else {
 						log.Printf("add \"%s\": %v", arg, err)
 					}
-				}
-			}
-
-			return nil
-		},
-	}
-
-	listFs := flag.NewFlagSet("listFlags", flag.ExitOnError)
-	listTag := listFs.String("t", "", "tag")
-	listReferrer := listFs.String("r", "", "referrer")
-	listCount := listFs.Bool("c", false, "show counts of each tag")
-	listCmd := &ffcli.Command{
-		Name:       "list",
-		ShortUsage: "list [flags]",
-		ShortHelp:  "Lists urls with tag or with referrer",
-		LongHelp:   "Lists urls with tag or with referrer.",
-		FlagSet:    listFs,
-		Exec: func(ctx context.Context, args []string) error {
-			openDatabase(*rootDB)
-			defer closeDatabase()
-
-			if *listCount {
-				if counts, err := tagCounts(); err == nil {
-					w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-					for _, c := range counts {
-						fmt.Fprintf(w, "%s\t%d\n", c.tag, c.count)
-					}
-					w.Flush()
-				} else {
-					log.Fatal(err)
-				}
-
-				return nil
-			}
-
-			if *listTag == "" && *listReferrer == "" {
-				return flag.ErrHelp
-			}
-
-			if *listTag != "" {
-				if pages, err := listByTag(*listTag); err == nil {
-					for _, pg := range pages {
-						printPage(pg)
-						fmt.Println()
-					}
-				} else {
-					return err
-				}
-			}
-
-			if *listReferrer != "" {
-				if pages, err := listByReferrer(*listReferrer); err == nil {
-					for _, pg := range pages {
-						printPage(pg)
-						fmt.Println()
-					}
-				} else {
-					return err
 				}
 			}
 
@@ -306,7 +238,7 @@ and printed one per line.`,
 		},
 	}
 
-	rootCmd.Subcommands = []*ffcli.Command{visitCmd, addCmd, searchCmd, listCmd, likeCmd, extractCmd}
+	rootCmd.Subcommands = []*ffcli.Command{visitCmd, addCmd, searchCmd, likeCmd, extractCmd}
 
 	if err := rootCmd.Parse(os.Args[1:]); err != nil && err != flag.ErrHelp {
 		log.Fatal(err)

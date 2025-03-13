@@ -12,7 +12,7 @@ import (
 )
 
 const tmplPageText = `
-{{- .URL}}{{labels .Tag .Referrer}}
+{{- .URL}}
 {{- if isHTML .}}
 {{unescape .Title}}
 
@@ -27,7 +27,6 @@ var tmplPage = template.Must(template.New("page").Funcs(template.FuncMap{
 	"contentFmt": contentFmt,
 	"dateFmt":    dateFmt,
 	"indent":     indent,
-	"labels":     labels,
 	"isHTML":     isHTML,
 }).Parse(tmplPageText))
 
@@ -56,22 +55,4 @@ func contentFmt(ind int, wid int, content string) string {
 		trimmed = trimmed[0:300]
 	}
 	return text.Indent(text.Wrap(trimmed, wid), indent(ind))
-}
-
-func labels(labels ...string) string {
-	if labels == nil || len(labels) == 0 {
-		return ""
-	}
-
-	s := ""
-	for _, t := range labels {
-		if t != "" {
-			s += t + ":"
-		}
-	}
-
-	if s == "" {
-		return ""
-	}
-	return " -- :" + s
 }
