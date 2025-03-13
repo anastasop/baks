@@ -3,10 +3,8 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"html"
 	"io"
-	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -17,36 +15,6 @@ import (
 type anchor struct {
 	url  string
 	text string
-}
-
-func extractAnchors(arg string, resolve bool) ([]anchor, error) {
-	if strings.HasPrefix(arg, `https://`) || strings.HasPrefix(arg, `http://`) {
-		url, err := url.Parse(arg)
-		if err != nil {
-			return nil, fmt.Errorf("extract \"%s\": %w", arg, err)
-		}
-		return anchorsFromURL(url, resolve)
-	}
-	return anchorsFromFile(arg)
-}
-
-func anchorsFromURL(url *url.URL, resolve bool) ([]anchor, error) {
-	resp, err := http.Get(url.String())
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP status %d", resp.StatusCode)
-	}
-
-	base := url
-	if !resolve {
-		base = nil
-	}
-
-	return anchorsFromReader(&io.LimitedReader{R: resp.Body, N: maxPageSize}, base, resolve)
 }
 
 func anchorsFromFile(fname string) ([]anchor, error) {

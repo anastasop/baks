@@ -161,47 +161,7 @@ It can include near and prefix queries as described in the sqlite3 docs.`,
 		},
 	}
 
-	extractFs := flag.NewFlagSet("extractFlags", flag.ExitOnError)
-	extractPrintText := extractFs.Bool("t", false, "print anchor text")
-	extractResolveURLs := extractFs.Bool("a", false, "print absolute urls")
-	extractCmd := &ffcli.Command{
-		Name:       "extract",
-		ShortUsage: "extract <url | file>...",
-		ShortHelp:  "Extract urls from urls or files",
-		LongHelp: `Extract extracts urls from files or urls.
-If the argument is a url, it fetces the html and prints the anchors
-<a href=...> one per line.
-If the argument is a file it is expected to be a text or html file.
-Text files should contain one url per line. Html files, are
-usually exports of bookmarks from browsers. The anchrors are extracted
-and printed one per line.`,
-		FlagSet: extractFs,
-		Exec: func(ctx context.Context, args []string) error {
-			for _, arg := range args {
-				urls, err := extractAnchors(arg, *extractResolveURLs)
-				if err != nil {
-					log.Println(err)
-					log.Println()
-					continue
-				}
-				if *extractPrintText {
-					for _, u := range urls {
-						fmt.Printf("%s %s\n\n", u.text, u.url)
-					}
-					fmt.Println()
-				} else {
-					for _, u := range urls {
-						fmt.Println(u.url)
-					}
-					fmt.Println()
-				}
-			}
-
-			return nil
-		},
-	}
-
-	rootCmd.Subcommands = []*ffcli.Command{visitCmd, addCmd, searchCmd, extractCmd}
+	rootCmd.Subcommands = []*ffcli.Command{visitCmd, addCmd, searchCmd}
 
 	if err := rootCmd.Parse(os.Args[1:]); err != nil && err != flag.ErrHelp {
 		log.Fatal(err)
