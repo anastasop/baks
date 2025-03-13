@@ -18,15 +18,10 @@ CREATE TABLE IF NOT EXISTS pages(
 	title TEXT,
 	description TEXT,
 	mime_type TEXT,
-	atom_url TEXT,
-	host TEXT,
-	is_root_page INTEGER,
 	added_at TEXT,
 
 	UNIQUE(url)
 );
-
-CREATE INDEX IF NOT EXISTS pages_host ON pages(host);
 
 CREATE VIRTUAL TABLE IF NOT EXISTS pages_fts USING fts5(
 	url UNINDEXED, title, description, content=pages, content_rowid=id
@@ -41,7 +36,7 @@ CREATE TRIGGER IF NOT EXISTS pages_ad AFTER DELETE ON pages BEGIN
 END;
 `
 
-var columnNames = strings.Fields("id url title description mime_type atom_url host is_root_page added_at")
+var columnNames = strings.Fields("id url title description mime_type added_at")
 var columnNamesComma = strings.Join(columnNames, ",")
 var columnPlaceholders = strings.TrimSuffix(strings.Repeat("?,", len(columnNames)), ",")
 var columnNamesWithTable = prepend("pages.", columnNames)
@@ -120,10 +115,7 @@ func rowsToPages(rows *sql.Rows) (pages []*page, err error) {
 		2: &sql.NullString{}, // title
 		3: &sql.NullString{}, // description
 		4: &sql.NullString{}, // mime_type
-		5: &sql.NullString{}, // atom_url
-		6: &sql.NullString{}, // host
-		7: &sql.NullBool{},   // is_root_page
-		8: &sql.NullString{}, // added_at
+		5: &sql.NullString{}, // added_at
 	}
 
 	for rows.Next() {
@@ -131,7 +123,7 @@ func rowsToPages(rows *sql.Rows) (pages []*page, err error) {
 			break
 		}
 
-		addedAt, err := time.Parse(dbTimeFmt, attrs[10].(*sql.NullString).String)
+		addedAt, err := time.Parse(dbTimeFmt, attrs[5].(*sql.NullString).String)
 		if err != nil {
 			break
 		}
@@ -141,9 +133,6 @@ func rowsToPages(rows *sql.Rows) (pages []*page, err error) {
 			Title:       attrs[2].(*sql.NullString).String,
 			Description: attrs[3].(*sql.NullString).String,
 			MimeType:    attrs[4].(*sql.NullString).String,
-			AtomURL:     attrs[5].(*sql.NullString).String,
-			Host:        attrs[6].(*sql.NullString).String,
-			IsRootPage:  attrs[7].(*sql.NullBool).Bool,
 			AddedAt:     addedAt,
 		})
 	}
@@ -159,9 +148,6 @@ func insertPage(pg *page) error {
 		nilIfEmpty(pg.Title),
 		nilIfEmpty(pg.Description),
 		nilIfEmpty(pg.MimeType),
-		nilIfEmpty(pg.AtomURL),
-		pg.Host,
-		boolToInt(pg.IsRootPage),
 		pg.AddedAt,
 	)
 
@@ -173,13 +159,6 @@ func nilIfEmpty(s string) interface{} {
 		return nil
 	}
 	return s
-}
-
-func boolToInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
 }
 
 func prepend(hdr string, strs []string) []string {

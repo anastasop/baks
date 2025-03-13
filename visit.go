@@ -25,8 +25,6 @@ func visit(url string, ignoreErrors, skipContent bool) (*page, error) {
 
 	page := new(page)
 	page.URL = resp.Request.URL.String()
-	page.Host = resp.Request.URL.Host
-	page.IsRootPage = resp.Request.URL.Path == "/"
 
 	if !skipContent {
 		if typ, doc, err := readContent(resp); err == nil {
@@ -81,19 +79,4 @@ func setContentAttributes(pg *page, doc *goquery.Document, base *url.URL) {
 	} else if og != "" {
 		pg.Description = og
 	}
-
-	// find Atom link
-	doc.Find("head link").Each(func(i int, s *goquery.Selection) {
-		if val, exists := s.Attr("type"); exists && (val == "application/atom+xml" || val == "application/rss+xml") {
-			if href := strings.TrimSpace(s.AttrOr("href", "")); href != "" {
-				if atomURL, err := url.Parse(href); err == nil {
-					if atomURL.IsAbs() {
-						pg.AtomURL = atomURL.String()
-					} else {
-						pg.AtomURL = base.ResolveReference(atomURL).String()
-					}
-				}
-			}
-		}
-	})
 }

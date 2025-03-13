@@ -9,8 +9,5 @@ type page struct {
 	Title       string
 	Description string
 	MimeType    string
-	AtomURL     string
-	Host        string
-	IsRootPage  bool
 	AddedAt     time.Time
 }
