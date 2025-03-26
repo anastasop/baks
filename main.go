@@ -37,7 +37,8 @@ func main() {
 		Name:       "baks",
 		ShortUsage: "baks [flags] subcommand [flags] <arguments>...",
 		ShortHelp:  "Baks is a swiss army knife for bookmarks",
-		LongHelp:   `Baks is a swiss army knife for bookmarks. It stores bookmarks on an sqlite3 database and supports full text search on title and description.`,
+		LongHelp:   `Baks is a swiss army knife for bookmarks. It stores bookmarks on an sqlite3
+database and supports full text search on title and description.`,
 		FlagSet:    rootFs,
 		Exec: func(ctx context.Context, args []string) error {
 			if *rootPath {
