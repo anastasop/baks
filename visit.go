@@ -20,7 +20,7 @@ func visit(url string, ignoreErrors, skipContent bool) (*page, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && !ignoreErrors {
-		return nil, fmt.Errorf("visit \"%s\": HTTP status %d", url, resp.StatusCode)
+		return nil, fmt.Errorf("visit: %s: HTTP status %d", url, resp.StatusCode)
 	}
 
 	page := new(page)
@@ -33,7 +33,7 @@ func visit(url string, ignoreErrors, skipContent bool) (*page, error) {
 				setContentAttributes(page, doc, resp.Request.URL)
 			}
 		} else {
-			log.Printf("visit \"%s\": ignoring content: error: %v", url, err)
+			log.Printf("visit: %s: ignoring content: %v", url, err)
 		}
 	}
 
