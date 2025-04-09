@@ -49,6 +49,10 @@ func visit(URL string, ignoreErrors, skipContent bool) (*page, error) {
 		return nil, NewVisitURLError(URL, fmt.Errorf("HTTP status %d", resp.StatusCode))
 	}
 
+	if redirectedToHostRoot(req.URL.Path, resp.Request.URL.Path) {
+		return nil, NewVisitURLError(URL, fmt.Errorf("redirection to host %s", resp.Request.URL))
+	}
+
 	page := new(page)
 	page.URL = resp.Request.URL.String()
 	page.AddedAt = time.Now()
@@ -124,4 +128,12 @@ func setContentAttributes(ctx context.Context, pg *page, body []byte, base *url.
 		pg.Description = npg.page.Description
 		return nil
 	}
+}
+
+func redirectedToHostRoot(askPath, gotPath string) bool {
+	return isPathEmpty(gotPath) && !isPathEmpty(askPath)
+}
+
+func isPathEmpty(p string) bool {
+	return p == "/" || p == ""
 }
