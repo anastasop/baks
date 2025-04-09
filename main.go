@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/peterbourgon/ff/v3/ffcli"
 )
@@ -37,9 +36,9 @@ func main() {
 		Name:       "baks",
 		ShortUsage: "baks [flags] subcommand [flags] <arguments>...",
 		ShortHelp:  "Baks is a swiss army knife for bookmarks",
-		LongHelp:   `Baks is a swiss army knife for bookmarks. It stores bookmarks on an sqlite3
+		LongHelp: `Baks is a swiss army knife for bookmarks. It stores bookmarks on an sqlite3
 database and supports full text search on title and description.`,
-		FlagSet:    rootFs,
+		FlagSet: rootFs,
 		Exec: func(ctx context.Context, args []string) error {
 			if *rootPath {
 				fmt.Println(*rootDB)
@@ -54,15 +53,10 @@ database and supports full text search on title and description.`,
 	addSkipContent := addFs.Bool("n", false, "don't read content")
 	addCmd := &ffcli.Command{
 		Name:       "add",
-		ShortUsage: "add [flags] <url | file>...",
+		ShortUsage: "add [flags] <url>...",
 		ShortHelp:  "Add the urls to the database",
-		LongHelp: `Add the urls to the database.
-If the argument is a url, it it added to the database.
-If the argument is a file it is expected to be a text or html file.
-For html, usually an export of bookmarks by a browser, the <a href=...>
-tags are extracted and the urls are added to the database.
-For text each line is assumed to be a valid url.`,
-		FlagSet: addFs,
+		LongHelp:   "Add the urls to the database",
+		FlagSet:    addFs,
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) == 0 {
 				return flag.ErrHelp
@@ -72,21 +66,8 @@ For text each line is assumed to be a valid url.`,
 			defer closeDatabase()
 
 			for _, arg := range args {
-				if strings.HasPrefix(arg, "http") {
-					if err := addURL(arg, *addIgnoreErrors, *addSkipContent); err != nil {
-						log.Println(err)
-					}
-				} else {
-					anchors, err := anchorsFromFile(arg)
-					if err == nil {
-						for _, u := range anchors {
-							if err := addURL(u.url, *addIgnoreErrors, *addSkipContent); err != nil {
-								log.Println(err)
-							}
-						}
-					} else {
-						log.Printf("add \"%s\": %v", arg, err)
-					}
+				if err := addURL(arg, *addIgnoreErrors, *addSkipContent); err != nil {
+					log.Println(err)
 				}
 			}
 
