@@ -1,18 +1,23 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"time"
 )
 
-func addURL(u string, ignoreErrors, skipContent bool) error {
-	pg, err := visit(u, ignoreErrors, skipContent)
+func addURL(URL string, ignoreErrors, skipContent bool) error {
+	pg, err := visit(URL, ignoreErrors, skipContent)
 	if err != nil {
-		return fmt.Errorf("add: %s: %w", u, err)
+		var verr VisitURLError
+		if errors.As(err, &verr) {
+			return err
+		} else {
+			return NewVisitURLError(URL, fmt.Errorf("add: %w", err))
+		}
 	}
-	pg.AddedAt = time.Now()
+
 	if err := insertPage(pg); err != nil {
-		return fmt.Errorf("add: %s: %w", u, err)
+		return NewVisitURLError(pg.URL, fmt.Errorf("db: %w", err))
 	}
 
 	return nil

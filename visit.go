@@ -4,37 +4,58 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
-func visit(url string, ignoreErrors, skipContent bool) (*page, error) {
-	resp, err := http.Get(url)
+type VisitURLError struct {
+	URL string
+	Err error
+}
+
+func (e VisitURLError) Error() string {
+	return fmt.Sprintf("visit: %s: %v", e.URL, e.Err)
+}
+
+func (e VisitURLError) Unwrap() error {
+	return e.Err
+}
+
+func NewVisitURLError(URL string, err error) error {
+	return VisitURLError{URL, err}
+}
+
+func visit(URL string, ignoreErrors, skipContent bool) (*page, error) {
+	resp, err := http.Get(URL)
 	if err != nil {
-		return nil, fmt.Errorf("visit \"%s\": %w", url, err)
+		return nil, NewVisitURLError(URL, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && !ignoreErrors {
-		return nil, fmt.Errorf("visit: %s: HTTP status %d", url, resp.StatusCode)
+		return nil, NewVisitURLError(URL, fmt.Errorf("HTTP status %d", resp.StatusCode))
 	}
 
 	page := new(page)
 	page.URL = resp.Request.URL.String()
+	page.AddedAt = time.Now()
 
-	if !skipContent {
-		if typ, doc, err := readContent(resp); err == nil {
-			page.MimeType = typ
-			if doc != nil {
-				setContentAttributes(page, doc, resp.Request.URL)
-			}
-		} else {
-			log.Printf("visit: %s: ignoring content: %v", url, err)
-		}
+	if skipContent {
+		return page, nil
+	}
+
+	typ, doc, err := readContent(resp)
+	if err != nil {
+		return nil, NewVisitURLError(URL, fmt.Errorf("read content failed: %w", err))
+	}
+
+	page.MimeType = typ
+	if doc != nil {
+		setContentAttributes(page, doc, resp.Request.URL)
 	}
 
 	return page, nil

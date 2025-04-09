@@ -52,27 +52,25 @@ var searchSQL = `WITH results AS (
 var searchSQLCount = `SELECT count(*) FROM pages_fts WHERE pages_fts MATCH ?`
 
 var (
-	dbFile string
-	db     *sql.DB
+	db *sql.DB
 )
 
 func openDatabase(dataSourceName string) {
 	if d, err := sql.Open("sqlite3", "file:"+dataSourceName); err == nil {
 		db = d
-		dbFile = dataSourceName
 	} else {
-		log.Fatalf("can't open database %s: %s", dataSourceName, err)
+		log.Fatalf("db: open failed: %s", err)
 	}
 
 	if _, err := db.Exec(schema); err != nil {
-		log.Fatalf("can't create schema: %s", err)
+		log.Fatalf("db: failed to create schema: %s", err)
 	}
 }
 
 func closeDatabase() {
 	if db != nil {
 		if err := db.Close(); err != nil {
-			log.Printf("can't close database %s: %s", dbFile, err)
+			log.Printf("db: close failed: %s", err)
 		}
 	}
 }
