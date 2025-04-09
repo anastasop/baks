@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -30,7 +31,15 @@ func NewVisitURLError(URL string, err error) error {
 }
 
 func visit(URL string, ignoreErrors, skipContent bool) (*page, error) {
-	resp, err := http.Get(URL)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancelFunc()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", URL, nil)
+	if err != nil {
+		return nil, NewVisitURLError(URL, err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, NewVisitURLError(URL, err)
 	}
@@ -48,56 +57,71 @@ func visit(URL string, ignoreErrors, skipContent bool) (*page, error) {
 		return page, nil
 	}
 
-	typ, doc, err := readContent(resp)
+	body, err := io.ReadAll(&io.LimitedReader{R: resp.Body, N: maxPageSize})
 	if err != nil {
-		return nil, NewVisitURLError(URL, fmt.Errorf("read content failed: %w", err))
+		return nil, NewVisitURLError(URL, fmt.Errorf("read failed: %w", err))
 	}
 
-	page.MimeType = typ
-	if doc != nil {
-		setContentAttributes(page, doc, resp.Request.URL)
+	page.MimeType = http.DetectContentType(body)
+	if strings.HasPrefix(page.MimeType, "text/html") {
+		if err := setContentAttributes(ctx, page, body, resp.Request.URL); err != nil {
+			return nil, NewVisitURLError(URL, fmt.Errorf("set contents failed: %w", err))
+		}
 	}
 
 	return page, nil
 }
 
-func readContent(resp *http.Response) (string, *goquery.Document, error) {
-	body, err := io.ReadAll(&io.LimitedReader{R: resp.Body, N: maxPageSize})
-	if err != nil {
-		return "", nil, err
+func setContentAttributes(ctx context.Context, pg *page, body []byte, base *url.URL) error {
+	type pageWithErr struct {
+		page *page
+		err  error
 	}
+	rc := make(chan pageWithErr, 1)
 
-	if typ := http.DetectContentType(body); !strings.HasPrefix(typ, "text/html") {
-		return typ, nil, nil
-	}
-
-	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(body))
-	return "text/html", doc, err
-}
-
-func setContentAttributes(pg *page, doc *goquery.Document, base *url.URL) {
-	pg.Title = strings.TrimSpace(doc.Find("head title").Text())
-
-	// fill page description
-	var meta, og, twitter string
-
-	doc.Find("head meta").Each(func(i int, s *goquery.Selection) {
-		if val, exists := s.Attr("name"); exists && val == "description" {
-			meta = strings.TrimSpace(s.AttrOr("content", ""))
+	// TODO: if the parser falls in an infinite loop, this is a goroutine leak
+	go func(body []byte) {
+		doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(body))
+		if err != nil {
+			rc <- pageWithErr{nil, err}
 		}
-		if val, exists := s.Attr("property"); exists && val == "og:description" {
-			og = strings.TrimSpace(s.AttrOr("content", ""))
-		}
-		if val, exists := s.Attr("property"); exists && val == "twitter:description" {
-			twitter = strings.TrimSpace(s.AttrOr("content", ""))
-		}
-	})
 
-	if meta != "" {
-		pg.Description = meta
-	} else if twitter != "" {
-		pg.Description = twitter
-	} else if og != "" {
-		pg.Description = og
+		dpg := new(page)
+		dpg.Title = strings.TrimSpace(doc.Find("head title").Text())
+
+		// fill page description
+		var meta, og, twitter string
+		doc.Find("head meta").Each(func(i int, s *goquery.Selection) {
+			if val, exists := s.Attr("name"); exists && val == "description" {
+				meta = strings.TrimSpace(s.AttrOr("content", ""))
+			}
+			if val, exists := s.Attr("property"); exists && val == "og:description" {
+				og = strings.TrimSpace(s.AttrOr("content", ""))
+			}
+			if val, exists := s.Attr("property"); exists && val == "twitter:description" {
+				twitter = strings.TrimSpace(s.AttrOr("content", ""))
+			}
+		})
+		if meta != "" {
+			dpg.Description = meta
+		} else if twitter != "" {
+			dpg.Description = twitter
+		} else if og != "" {
+			dpg.Description = og
+		}
+
+		rc <- pageWithErr{dpg, nil}
+	}(body)
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case npg := <-rc:
+		if npg.err != nil {
+			return npg.err
+		}
+		pg.Title = npg.page.Title
+		pg.Description = npg.page.Description
+		return nil
 	}
 }
