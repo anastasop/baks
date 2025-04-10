@@ -50,7 +50,7 @@ func visit(URL string, ignoreErrors, skipContent bool) (*page, error) {
 	}
 
 	if redirectedToHostRoot(req.URL.Path, resp.Request.URL.Path) {
-		return nil, NewVisitURLError(URL, fmt.Errorf("redirection to host %s", resp.Request.URL))
+		return nil, NewVisitURLError(URL, fmt.Errorf("redirection %s: redirection to host", resp.Request.URL))
 	}
 
 	page := new(page)
