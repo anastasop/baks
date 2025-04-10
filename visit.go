@@ -13,6 +13,8 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+const userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0`
+
 type VisitURLError struct {
 	URL string
 	Err error
@@ -38,6 +40,7 @@ func visit(URL string, ignoreErrors, skipContent bool) (*page, error) {
 	if err != nil {
 		return nil, NewVisitURLError(URL, err)
 	}
+	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
