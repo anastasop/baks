@@ -55,6 +55,7 @@ func visit(URL string, ignoreErrors, skipContent bool) (*page, error) {
 
 	page := new(page)
 	page.URL = resp.Request.URL.String()
+	page.URLorig = URL
 	page.AddedAt = time.Now()
 
 	if skipContent {

@@ -17,7 +17,7 @@ func addURL(URL string, ignoreErrors, skipContent bool) error {
 	}
 
 	if err := insertPage(pg); err != nil {
-		return NewVisitURLError(pg.URL, fmt.Errorf("db: %w", err))
+		return NewVisitURLError(pg.URL, fmt.Errorf("original: %s: db: %w", pg.URLorig, err))
 	}
 
 	return nil
