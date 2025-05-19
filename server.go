@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -88,15 +89,31 @@ func randomHandler(w http.ResponseWriter, r *http.Request) {
 	resultsTemplate.Execute(w, SearchResults{Query: "Random", Count: len(pages), Pages: pages})
 }
 
-func startServer(addr string) error {
+func startServer(listenAddr, announceAddr string) error {
 	cnt, err := fs.Sub(content, "static")
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	openSearchXML := strings.NewReplacer("@", announceAddr).Replace(openSearchTemplate)
+
+	http.HandleFunc("GET /opensearch.xml", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/opensearchdescription+xml")
+		fmt.Fprintf(w, "%s", openSearchXML)
+	})
 	http.HandleFunc("GET /search", searchHandler)
 	http.HandleFunc("GET /recent", recentHandler)
 	http.HandleFunc("GET /random", randomHandler)
 	http.Handle("GET /", http.FileServerFS(cnt))
-	return http.ListenAndServe(addr, nil)
+	return http.ListenAndServe(listenAddr, nil)
 }
+
+const openSearchTemplate = `<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+  <ShortName>baks</ShortName>
+  <Description>baks bookmarks search engine</Description>
+  <InputEncoding>UTF-8</InputEncoding>
+  <Image width="16" height="16" type="image/x-icon">/favicon.ico</Image>
+  <Url type="text/html" template="http://@/search?q={searchTerms}" />
+</OpenSearchDescription>
+`

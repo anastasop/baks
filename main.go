@@ -116,7 +116,8 @@ It can include near and prefix queries as described in the sqlite3 docs.`,
 	}
 
 	serverFs := flag.NewFlagSet("serverFlags", flag.ExitOnError)
-	serverAddr := serverFs.String("l", ":8080", "server address")
+	listenAddr := serverFs.String("l", ":8080", "server listen address")
+	announceAddr := serverFs.String("a", "localhost:8080", "server announce address for opensearch")
 	serverCmd := &ffcli.Command{
 		Name:       "server",
 		ShortUsage: "server [flags] <url>...",
@@ -127,7 +128,7 @@ It can include near and prefix queries as described in the sqlite3 docs.`,
 			openDatabase(*rootDB)
 			defer closeDatabase()
 
-			return startServer(*serverAddr)
+			return startServer(*listenAddr, *announceAddr)
 		},
 	}
 
