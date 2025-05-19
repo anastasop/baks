@@ -1,0 +1,23 @@
+{{define "page"}}
+<div class="page">
+<span class="when">{{.AddedAt | timefmt}}</span><br>
+<a href="{{.URL}}" referrerpolicy="no-referrer" target="_blank">{{.Title | ifempty .URL}}</a>
+<div class="description">{{.Description | truncate 1200}}</div>
+</div>
+{{end}}
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/baks.css">
+    <title>baks results for {{.Query}}</title>
+  </head>
+  <body>
+    <p class="summary">Found {{.Count}} results for {{.Query}}</p>
+    <div class="pages">
+      {{range .Pages}}{{template "page" .}}{{end}}
+    </div>
+  </body>
+</html>

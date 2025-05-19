@@ -51,6 +51,10 @@ var searchSQL = `WITH results AS (
 
 var searchSQLCount = `SELECT count(*) FROM pages_fts WHERE pages_fts MATCH ?`
 
+var recentSQL = `SELECT ` + columnNamesWithTableComma + ` FROM pages ORDER BY pages.added_at DESC LIMIT ?`
+
+var randomSQL = `SELECT ` + columnNamesWithTableComma + ` FROM pages ORDER BY RANDOM() LIMIT ?`
+
 var (
 	db *sql.DB
 )
@@ -82,6 +86,14 @@ func search(q string) ([]*page, error) {
 func searchCount(q string) (count int, err error) {
 	err = db.QueryRow(searchSQLCount, q).Scan(&count)
 	return
+}
+
+func recent(n int) ([]*page, error) {
+	return rowsToPagesWithQuery(db.Query(recentSQL, n))
+}
+
+func random(n int) ([]*page, error) {
+	return rowsToPagesWithQuery(db.Query(randomSQL, n))
 }
 
 func rowsToPagesWithQuery(rows *sql.Rows, err error) ([]*page, error) {

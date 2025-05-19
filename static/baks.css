@@ -1,0 +1,29 @@
+
+.summary {
+	font-weight: bold;
+	font-size: 120%;
+}
+
+.pages {
+	width: 80%;
+	margin: auto;
+}
+
+.page {
+  margin-bottom: 1em;
+}
+
+.page .when {
+  color: grey;
+  font-style: italic;
+  font-size: 80%;
+}
+
+.page a {
+  font-weight: bold;
+  font-size: 120%;
+}
+
+.page .description {
+  margin: 1em;
+}

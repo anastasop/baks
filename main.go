@@ -115,7 +115,23 @@ It can include near and prefix queries as described in the sqlite3 docs.`,
 		},
 	}
 
-	rootCmd.Subcommands = []*ffcli.Command{addCmd, searchCmd}
+	serverFs := flag.NewFlagSet("serverFlags", flag.ExitOnError)
+	serverAddr := serverFs.String("l", ":8080", "server address")
+	serverCmd := &ffcli.Command{
+		Name:       "server",
+		ShortUsage: "server [flags] <url>...",
+		ShortHelp:  "Launch an http server with a search API",
+		LongHelp:   "Launch an http server with a search API",
+		FlagSet:    serverFs,
+		Exec: func(ctx context.Context, args []string) error {
+			openDatabase(*rootDB)
+			defer closeDatabase()
+
+			return startServer(*serverAddr)
+		},
+	}
+
+	rootCmd.Subcommands = []*ffcli.Command{addCmd, searchCmd, serverCmd}
 
 	if err := rootCmd.Parse(os.Args[1:]); err != nil && err != flag.ErrHelp {
 		log.Fatal(err)
