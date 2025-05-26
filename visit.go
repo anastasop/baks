@@ -15,21 +15,32 @@ import (
 
 const userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0`
 
-type VisitURLError struct {
-	URL string
-	Err error
+type VisitError struct {
+	URL        string
+	HttpError  error
+	OtherError error
 }
 
-func (e VisitURLError) Error() string {
-	return fmt.Sprintf("visit: %s: %v", e.URL, e.Err)
+func (e VisitError) Error() string {
+	if e.HttpError != nil {
+		return fmt.Sprintf("visit: %s proto: %v", e.URL, e.HttpError)
+	}
+	return fmt.Sprintf("visit: %s other: %v", e.URL, e.OtherError)
 }
 
-func (e VisitURLError) Unwrap() error {
-	return e.Err
+func (e VisitError) Unwrap() error {
+	if e.HttpError != nil {
+		return e.HttpError
+	}
+	return e.OtherError
 }
 
-func NewVisitURLError(URL string, err error) error {
-	return VisitURLError{URL, err}
+func NewVisitHttpError(URL string, err error) error {
+	return VisitError{URL: URL, HttpError: err}
+}
+
+func NewVisitOtherError(URL string, err error) error {
+	return VisitError{URL: URL, OtherError: err}
 }
 
 func visit(URL string, ignoreErrors, skipContent bool) (*page, error) {
@@ -38,22 +49,22 @@ func visit(URL string, ignoreErrors, skipContent bool) (*page, error) {
 
 	req, err := http.NewRequestWithContext(ctx, "GET", URL, nil)
 	if err != nil {
-		return nil, NewVisitURLError(URL, err)
+		return nil, NewVisitOtherError(URL, err)
 	}
 	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, NewVisitURLError(URL, err)
+		return nil, NewVisitOtherError(URL, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && !ignoreErrors {
-		return nil, NewVisitURLError(URL, fmt.Errorf("HTTP status %d", resp.StatusCode))
+		return nil, NewVisitHttpError(URL, fmt.Errorf("HTTP status %d", resp.StatusCode))
 	}
 
 	if redirectedToHostRoot(req.URL.Path, resp.Request.URL.Path) {
-		return nil, NewVisitURLError(URL, fmt.Errorf("redirection %s: redirection to host", resp.Request.URL))
+		return nil, NewVisitHttpError(URL, fmt.Errorf("redirection to host", resp.Request.URL))
 	}
 
 	page := new(page)
@@ -67,13 +78,13 @@ func visit(URL string, ignoreErrors, skipContent bool) (*page, error) {
 
 	body, err := io.ReadAll(&io.LimitedReader{R: resp.Body, N: maxPageSize})
 	if err != nil {
-		return nil, NewVisitURLError(URL, fmt.Errorf("read failed: %w", err))
+		return nil, NewVisitOtherError(URL, fmt.Errorf("read failed: %w", err))
 	}
 
 	page.MimeType = http.DetectContentType(body)
 	if strings.HasPrefix(page.MimeType, "text/html") {
 		if err := setContentAttributes(ctx, page, body, resp.Request.URL); err != nil {
-			return nil, NewVisitURLError(URL, fmt.Errorf("set contents failed: %w", err))
+			return nil, NewVisitOtherError(URL, fmt.Errorf("failed to extract page content: %w", err))
 		}
 	}
 
