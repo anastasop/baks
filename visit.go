@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -64,7 +65,7 @@ func visit(URL string, ignoreErrors, skipContent bool) (*page, error) {
 	}
 
 	if redirectedToHostRoot(req.URL.Path, resp.Request.URL.Path) {
-		return nil, NewVisitHttpError(URL, fmt.Errorf("redirection to host", resp.Request.URL))
+		return nil, NewVisitHttpError(URL, errors.New("redirection to host"))
 	}
 
 	page := new(page)
