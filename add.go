@@ -5,6 +5,14 @@ import (
 )
 
 func addURL(URL string, ignoreErrors, skipContent bool) error {
+	visited, err := pageVisited(URL)
+	if err != nil {
+		return err
+	}
+	if visited {
+		return fmt.Errorf("add: %s visited:", URL)
+	}
+
 	pg, err := visit(URL, ignoreErrors, skipContent)
 	if err != nil {
 		return err

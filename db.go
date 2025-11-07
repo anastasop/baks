@@ -55,6 +55,8 @@ var recentSQL = `SELECT ` + columnNamesWithTableComma + ` FROM pages ORDER BY pa
 
 var randomSQL = `SELECT ` + columnNamesWithTableComma + ` FROM pages ORDER BY RANDOM() LIMIT ?`
 
+var existsSQL = `SELECT count(*) FROM pages WHERE url = ?`
+
 var (
 	db *sql.DB
 )
@@ -149,6 +151,12 @@ func insertPage(pg *page) error {
 	)
 
 	return err
+}
+
+func pageVisited(URL string) (bool, error) {
+	var count int
+	err := db.QueryRow(existsSQL, URL).Scan(&count)
+	return count > 0, err
 }
 
 func nilIfEmpty(s string) interface{} {
